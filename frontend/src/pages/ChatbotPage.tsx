@@ -361,22 +361,35 @@ export default function ChatbotPage() {
           })}
         </nav>
 
-        {/* Bottom Brand */}
-        <div style={{ padding: "0 24px" }}>
+        {/* User Profile */}
+        <div style={{ padding: "0 12px" }}>
           <Separator
-            style={{ background: `${colors.secondary}20`, marginBottom: 16 }}
+            style={{ background: `${colors.secondary}20`, marginBottom: 16, marginLeft: 12, marginRight: 12 }}
           />
-          <span
+          <a
+            href="/personal-info"
             style={{
-              fontSize: "0.7rem",
-              fontWeight: 500,
-              color: colors.secondary,
-              letterSpacing: "0.06em",
-              textTransform: "uppercase",
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              padding: "10px 12px",
+              borderRadius: 10,
+              textDecoration: "none",
+              color: colors.primary,
+              cursor: "pointer",
+              transition: "background 0.2s ease",
             }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = colors.neutral)}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
-            Nidana
-          </span>
+            <Avatar style={{ width: 32, height: 32 }}>
+              <AvatarFallback style={{ background: `${colors.tertiary}20`, color: colors.tertiary, fontSize: "0.85rem", fontWeight: 600 }}>JD</AvatarFallback>
+            </Avatar>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span style={{ fontSize: "0.9rem", fontWeight: 500, lineHeight: 1.2 }}>Jane Doe</span>
+              <span style={{ fontSize: "0.75rem", color: colors.secondary }}>View Profile</span>
+            </div>
+          </a>
         </div>
       </aside>
 
