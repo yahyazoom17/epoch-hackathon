@@ -1,6 +1,5 @@
 from crewai import LLM
 import os
-from openai import OpenAI
 
 nvidia_llm = LLM(
     model="nvidia_nim/meta/llama-4-maverick-17b-128e-instruct",
@@ -9,5 +8,3 @@ nvidia_llm = LLM(
     temperature=0.7,
     max_tokens=1024
 )
-
-openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
