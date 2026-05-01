@@ -7,6 +7,15 @@ import {
   Send,
   Leaf,
   Bot,
+  Mic,
+  MicOff,
+  Plus,
+  Image as ImageIcon,
+  Camera,
+  FileText,
+  ChevronDown,
+  ChevronRight,
+  Activity,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -32,10 +41,10 @@ interface Message {
 
 /* ─── Nav Items ─── */
 const navItems = [
-  { label: "Health Sanctuary", icon: Flower2, href: "/sanctuary" },
-  { label: "Wellness Guide", icon: BrainCircuit, href: "/chatbot", active: true },
-  { label: "Vitals Log", icon: HeartPulse, href: "/vitals" },
+  { label: "Health Monitor", icon: Flower2, href: "/sanctuary" },
+  { label: " Ayush AI ", icon: BrainCircuit, href: "/chatbot", active: true },
   { label: "Health History", icon: History, href: "/history" },
+  { label: "Women Health", icon: Activity, href: "/women-health" },
 ];
 
 /* ─── Seed Messages ─── */
@@ -66,16 +75,86 @@ const seedMessages: Message[] = [
   },
 ];
 
+const chatHistorySessions = [
+  { id: "h1", title: "Headache Discussion", date: "Today" },
+  { id: "h2", title: "Dietary Plan", date: "Yesterday" },
+  { id: "h3", title: "Sleep Habits", date: "Last Week" },
+];
+
 export default function ChatbotPage() {
   const [messages, setMessages] = useState<Message[]>(seedMessages);
   const [input, setInput] = useState("");
+  const [isListening, setIsListening] = useState(false);
+  const [showAttachments, setShowAttachments] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setShowAttachments(false);
+      const userMsg: Message = {
+        id: Date.now().toString(),
+        role: "user",
+        content: `[Attached file: ${file.name}]`,
+      };
+      setMessages((prev) => [...prev, userMsg]);
+    }
+  };
+
+  useEffect(() => {
+    // @ts-ignore
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setInput((prev) => (prev ? prev + " " + transcript : transcript));
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error("Speech recognition error", event.error);
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+    }
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    } else {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.start();
+          setIsListening(true);
+        } catch (e) {
+          console.error(e);
+        }
+      } else {
+        alert("Speech recognition is not supported in this browser.");
+      }
+    }
+  };
 
   const handleSend = () => {
     if (!input.trim()) return;
@@ -164,7 +243,7 @@ export default function ChatbotPage() {
                   textTransform: "uppercase",
                 }}
               >
-                Clinical Calm AI
+                wellness guide
               </span>
             </div>
           </div>
@@ -184,42 +263,100 @@ export default function ChatbotPage() {
             const Icon = item.icon;
             const isActive = item.active;
             return (
-              <a
-                key={item.label}
-                href={item.href}
-                id={`nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  padding: "10px 12px",
-                  borderRadius: 10,
-                  fontSize: "0.875rem",
-                  fontWeight: isActive ? 500 : 400,
-                  color: isActive ? colors.primary : colors.secondary,
-                  background: isActive ? `${colors.tertiary}14` : "transparent",
-                  textDecoration: "none",
-                  transition: "all 0.15s ease",
-                  cursor: "pointer",
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = `${colors.neutral}`;
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = "transparent";
-                  }
-                }}
-              >
-                <Icon
-                  size={18}
-                  color={isActive ? colors.tertiary : colors.secondary}
-                  strokeWidth={isActive ? 2 : 1.5}
-                />
-                {item.label}
-              </a>
+              <div key={item.label} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <a
+                  href={item.href}
+                  id={`nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "10px 12px",
+                    borderRadius: 10,
+                    fontSize: "0.875rem",
+                    fontWeight: isActive ? 500 : 400,
+                    color: isActive ? colors.primary : colors.secondary,
+                    background: isActive ? `${colors.tertiary}14` : "transparent",
+                    textDecoration: "none",
+                    transition: "all 0.15s ease",
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = `${colors.neutral}`;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = "transparent";
+                    }
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <Icon
+                      size={18}
+                      color={isActive ? colors.tertiary : colors.secondary}
+                      strokeWidth={isActive ? 2 : 1.5}
+                    />
+                    {item.label}
+                  </div>
+                  {item.href === "/chatbot" && (
+                    <div
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setIsHistoryOpen(!isHistoryOpen);
+                      }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: 4,
+                        marginRight: -4,
+                        borderRadius: 6,
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = `${colors.secondary}20`)}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    >
+                      {isHistoryOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                    </div>
+                  )}
+                </a>
+                {item.href === "/chatbot" && isHistoryOpen && (
+                  <div
+                    style={{
+                      paddingLeft: 42,
+                      paddingRight: 12,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 4,
+                      marginTop: 2,
+                      marginBottom: 8,
+                    }}
+                  >
+                    {chatHistorySessions.map((session) => (
+                      <div
+                        key={session.id}
+                        style={{
+                          fontSize: "0.8rem",
+                          color: colors.secondary,
+                          cursor: "pointer",
+                          padding: "6px 8px",
+                          borderRadius: 6,
+                          transition: "background 0.15s ease",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = colors.neutral)}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                        title={session.title}
+                      >
+                        {session.title}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             );
           })}
         </nav>
@@ -238,7 +375,7 @@ export default function ChatbotPage() {
               textTransform: "uppercase",
             }}
           >
-            Clinic Sage v1.0
+            Nidana
           </span>
         </div>
       </aside>
@@ -288,7 +425,7 @@ export default function ChatbotPage() {
                 fontFamily: "'DM Sans', sans-serif",
               }}
             >
-              Wellness Guide
+              Ayush - Your Personal AI Doc
             </h2>
           </div>
           <p
@@ -423,17 +560,161 @@ export default function ChatbotPage() {
               gap: 12,
               background: colors.neutral,
               borderRadius: 16,
-              padding: "6px 6px 6px 20px",
+              padding: "6px 6px 6px 12px",
               border: `1px solid ${colors.secondary}30`,
               transition: "border-color 0.15s ease",
+              position: "relative",
             }}
             onFocus={(e) => {
               e.currentTarget.style.borderColor = `${colors.tertiary}60`;
             }}
             onBlur={(e) => {
-              e.currentTarget.style.borderColor = `${colors.secondary}30`;
+              setTimeout(() => {
+                e.currentTarget.style.borderColor = `${colors.secondary}30`;
+              }, 150);
             }}
           >
+            {/* Attachment Button & Menu */}
+            <div style={{ position: "relative" }}>
+              <Button
+                onClick={() => setShowAttachments((prev) => !prev)}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: "50%",
+                  background: showAttachments ? `${colors.primary}15` : "transparent",
+                  border: "none",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                  padding: 0,
+                  flexShrink: 0,
+                }}
+              >
+                <Plus
+                  size={20}
+                  color={colors.secondary}
+                  style={{
+                    transform: showAttachments ? "rotate(45deg)" : "rotate(0deg)",
+                    transition: "transform 0.2s ease",
+                  }}
+                />
+              </Button>
+
+              {showAttachments && (
+                <div
+                  style={{
+                    position: "absolute",
+                    bottom: "calc(100% + 12px)",
+                    left: 0,
+                    background: colors.surface,
+                    border: `1px solid ${colors.secondary}30`,
+                    borderRadius: 12,
+                    padding: 8,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 4,
+                    boxShadow: `0 4px 12px ${colors.secondary}20`,
+                    zIndex: 10,
+                    minWidth: 140,
+                  }}
+                >
+                  <button
+                    onClick={() => galleryRef.current?.click()}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "8px 12px",
+                      background: "transparent",
+                      border: "none",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      fontSize: "0.85rem",
+                      color: colors.primary,
+                      fontFamily: "'DM Sans', sans-serif",
+                      textAlign: "left",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = colors.neutral)}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                  >
+                    <ImageIcon size={16} color={colors.secondary} />
+                    Gallery
+                  </button>
+                  <button
+                    onClick={() => cameraRef.current?.click()}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "8px 12px",
+                      background: "transparent",
+                      border: "none",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      fontSize: "0.85rem",
+                      color: colors.primary,
+                      fontFamily: "'DM Sans', sans-serif",
+                      textAlign: "left",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = colors.neutral)}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                  >
+                    <Camera size={16} color={colors.secondary} />
+                    Camera
+                  </button>
+                  <button
+                    onClick={() => fileRef.current?.click()}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "8px 12px",
+                      background: "transparent",
+                      border: "none",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      fontSize: "0.85rem",
+                      color: colors.primary,
+                      fontFamily: "'DM Sans', sans-serif",
+                      textAlign: "left",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = colors.neutral)}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                  >
+                    <FileText size={16} color={colors.secondary} />
+                    Files
+                  </button>
+                </div>
+              )}
+
+              {/* Hidden file inputs */}
+              <input
+                type="file"
+                accept="image/*"
+                ref={galleryRef}
+                style={{ display: "none" }}
+                onChange={handleFileChange}
+              />
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                ref={cameraRef}
+                style={{ display: "none" }}
+                onChange={handleFileChange}
+              />
+              <input
+                type="file"
+                accept="*/*"
+                ref={fileRef}
+                style={{ display: "none" }}
+                onChange={handleFileChange}
+              />
+            </div>
+
             <input
               id="chat-input"
               value={input}
@@ -451,6 +732,31 @@ export default function ChatbotPage() {
                 fontFamily: "'DM Sans', sans-serif",
               }}
             />
+            <Button
+              onClick={toggleListening}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                background: isListening ? `${colors.primary}15` : "transparent",
+                border: "none",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+                padding: 0,
+                flexShrink: 0,
+                marginRight: 4,
+              }}
+              title={isListening ? "Stop listening" : "Start listening"}
+            >
+              {isListening ? (
+                <MicOff size={18} color={colors.primary} />
+              ) : (
+                <Mic size={18} color={colors.secondary} />
+              )}
+            </Button>
             <Button
               id="send-button"
               onClick={handleSend}
@@ -485,7 +791,7 @@ export default function ChatbotPage() {
               letterSpacing: "0.04em",
             }}
           >
-            Clinic Sage provides general wellness guidance. Always consult your
+            Nidana provides general wellness guidance. Always consult your
             healthcare provider.
           </p>
         </div>
