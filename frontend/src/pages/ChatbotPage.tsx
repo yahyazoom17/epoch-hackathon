@@ -42,8 +42,7 @@ interface Message {
 /* ─── Nav Items ─── */
 const navItems = [
   { label: "Health Monitor", icon: Flower2, href: "/sanctuary" },
-  { label: "Wellness Guide", icon: BrainCircuit, href: "/chatbot", active: true },
-  { label: "Vitals Log", icon: HeartPulse, href: "/vitals" },
+  { label: " Ayush AI ", icon: BrainCircuit, href: "/chatbot", active: true },
   { label: "Health History", icon: History, href: "/history" },
   { label: "Women Health", icon: Activity, href: "/women-health" },
 ];
@@ -244,7 +243,7 @@ export default function ChatbotPage() {
                   textTransform: "uppercase",
                 }}
               >
-                Clinical Calm AI
+                wellness guide
               </span>
             </div>
           </div>
@@ -301,7 +300,7 @@ export default function ChatbotPage() {
                     />
                     {item.label}
                   </div>
-                  {item.label === "Wellness Guide" && (
+                  {item.href === "/chatbot" && (
                     <div
                       onClick={(e) => {
                         e.preventDefault();
@@ -322,7 +321,7 @@ export default function ChatbotPage() {
                     </div>
                   )}
                 </a>
-                {item.label === "Wellness Guide" && isHistoryOpen && (
+                {item.href === "/chatbot" && isHistoryOpen && (
                   <div
                     style={{
                       paddingLeft: 42,
