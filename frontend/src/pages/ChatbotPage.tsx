@@ -57,9 +57,9 @@ function extractResponseText(response: any): string {
 /* ─── Nav Items ─── */
 const navItems = [
   { label: "Health Monitor", icon: Flower2, href: "/sanctuary" },
-  { label: " Ayush AI ", icon: BrainCircuit, href: "/chatbot", active: true },
-  { label: "Health History", icon: History, href: "/history" },
-  { label: "Women Health", icon: Activity, href: "/women-health" },
+  { label: "Ayush AI", icon: BrainCircuit, href: "/chatbot", active: true },
+  { label: "Lifestyle Tracker", icon: History, href: "/history" },
+  { label: "Vital Logs", icon: Activity, href: "/women-health" },
 ];
 
 /* ─── Seed Messages ─── */
