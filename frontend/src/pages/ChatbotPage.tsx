@@ -21,6 +21,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 /* ─── Design Tokens from DESIGN.md ─── */
 const colors = {
@@ -37,6 +39,19 @@ interface Message {
   id: string;
   role: "ai" | "user";
   content: string;
+}
+
+/* ─── API Helper ─── */
+const API_BASE = "/api/chatbot";
+
+function extractResponseText(response: any): string {
+  if (!response) return "I'm sorry, I couldn't generate a response.";
+  // CrewAI returns a CrewOutput object — the text is in .raw
+  if (typeof response === "string") return response;
+  if (response.raw) return String(response.raw);
+  if (response.result) return String(response.result);
+  if (response.output) return String(response.output);
+  return JSON.stringify(response);
 }
 
 /* ─── Nav Items ─── */
@@ -87,22 +102,70 @@ export default function ChatbotPage() {
   const [isListening, setIsListening] = useState(false);
   const [showAttachments, setShowAttachments] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setShowAttachments(false);
-      const userMsg: Message = {
-        id: Date.now().toString(),
-        role: "user",
-        content: `[Attached file: ${file.name}]`,
+    if (!file) return;
+    setShowAttachments(false);
+
+    const userMsg: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: `[Attached file: ${file.name}]`,
+    };
+    setMessages((prev) => [...prev, userMsg]);
+    setIsLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // Choose endpoint based on file type
+      const isPdf = file.type === "application/pdf";
+      const isImage = file.type.startsWith("image/");
+      let endpoint = `${API_BASE}/upload-pdf`; // default
+      if (isImage) endpoint = `${API_BASE}/upload-image`;
+      else if (isPdf) endpoint = `${API_BASE}/upload-pdf`;
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+
+      if (data.status === "ok") {
+        const aiMsg: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "ai",
+          content: extractResponseText(data.response),
+        };
+        setMessages((prev) => [...prev, aiMsg]);
+      } else {
+        const errMsg: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "ai",
+          content: data.error || "Sorry, I could not process that file. Please try again.",
+        };
+        setMessages((prev) => [...prev, errMsg]);
+      }
+    } catch (err) {
+      console.error("File upload error:", err);
+      const errMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "ai",
+        content: "I'm having trouble connecting to the server. Please check that the backend is running and try again.",
       };
-      setMessages((prev) => [...prev, userMsg]);
+      setMessages((prev) => [...prev, errMsg]);
+    } finally {
+      setIsLoading(false);
+      // Reset the input so re-uploading the same file triggers onChange
+      e.target.value = "";
     }
   };
 
@@ -156,15 +219,43 @@ export default function ChatbotPage() {
     }
   };
 
-  const handleSend = () => {
-    if (!input.trim()) return;
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
+    const query = input.trim();
     const userMsg: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: input.trim(),
+      content: query,
     };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
+    setIsLoading(true);
+
+    try {
+      const res = await fetch(`${API_BASE}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query }),
+      });
+      const data = await res.json();
+
+      const aiMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "ai",
+        content: extractResponseText(data.response),
+      };
+      setMessages((prev) => [...prev, aiMsg]);
+    } catch (err) {
+      console.error("Chat error:", err);
+      const errMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "ai",
+        content: "I'm having trouble connecting to the server. Please check that the backend is running and try again.",
+      };
+      setMessages((prev) => [...prev, errMsg]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -528,7 +619,15 @@ export default function ChatbotPage() {
                         : "none",
                   }}
                 >
-                  {msg.content}
+                  {msg.role === "ai" ? (
+                    <div className="markdown-body">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {msg.content}
+                      </ReactMarkdown>
+                    </div>
+                  ) : (
+                    msg.content
+                  )}
                 </div>
 
                 {/* User Avatar */}
@@ -554,6 +653,78 @@ export default function ChatbotPage() {
                 )}
               </div>
             ))}
+
+            {/* Typing indicator */}
+            {isLoading && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: 14,
+                  alignItems: "flex-start",
+                }}
+              >
+                <Avatar
+                  size="default"
+                  style={{ flexShrink: 0, marginTop: 2 }}
+                >
+                  <AvatarFallback
+                    style={{
+                      background: colors.primary,
+                      color: colors.onPrimary,
+                    }}
+                  >
+                    <Bot size={16} />
+                  </AvatarFallback>
+                </Avatar>
+                <div
+                  style={{
+                    maxWidth: "65%",
+                    padding: "14px 20px",
+                    borderRadius: "4px 16px 16px 16px",
+                    background: colors.surface,
+                    border: `1px solid ${colors.secondary}20`,
+                    boxShadow: `0 1px 3px ${colors.secondary}15`,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <span
+                    style={{
+                      display: "inline-block",
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: colors.tertiary,
+                      animation: "pulse 1.4s infinite ease-in-out",
+                      animationDelay: "0s",
+                    }}
+                  />
+                  <span
+                    style={{
+                      display: "inline-block",
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: colors.tertiary,
+                      animation: "pulse 1.4s infinite ease-in-out",
+                      animationDelay: "0.2s",
+                    }}
+                  />
+                  <span
+                    style={{
+                      display: "inline-block",
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: colors.tertiary,
+                      animation: "pulse 1.4s infinite ease-in-out",
+                      animationDelay: "0.4s",
+                    }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </ScrollArea>
 
@@ -773,7 +944,7 @@ export default function ChatbotPage() {
             <Button
               id="send-button"
               onClick={handleSend}
-              disabled={!input.trim()}
+              disabled={!input.trim() || isLoading}
               style={{
                 width: 40,
                 height: 40,

@@ -19,7 +19,7 @@ report_agent = Agent(
 
 doctor_agent = Agent(
     role="Doctor",
-    goal="Provide safe medical guidance. Never diagnose. Always suggest professional help when needed.",
+    goal="Provide safe medical guidance. Never diagnose. Always suggest professional help when needed. Provide explainable interventions to the patient. STRICTLY give only a 5-6 lines of response not more than that.",
     backstory="General physician focused on safe and conservative advice",
     llm=nvidia_llm,
     verbose=True
